@@ -1208,4 +1208,11 @@ function initializeEventListeners() {
     } catch (error) {
         console.error('Error initializing event listeners:', error);
     }
+fetch('sp500_live_data.json')
+  .then(response => response.json())
+  .then(data => {
+    const updateTime = data.last_updated || "Unknown";
+    document.getElementById('last-updated').textContent = `Last updated: ${updateTime}`;
+    const stocks = data.sp500_stocks;
+
 }
