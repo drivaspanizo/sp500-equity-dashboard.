@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equity Value Intelligence: S&P 500 Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>Equity Value Intelligence: S&P 500 Tracker</h1>
+            <div class="header-actions">
+                <button class="btn btn--primary" id="exportBtn">Export Data</button>
+                <button class="btn btn--secondary" id="alertsBtn">Alerts</button>
+            </div>
+        </header>
+
+        <!-- Filters & Controls -->
+        <section class="filters-section card">
+            <div class="card__body">
+                <h3>Filters & Controls</h3>
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label class="form-label" for="sectorFilter">Sector</label>
+                        <select id="sectorFilter" class="form-control">
+                            <option value="">All Sectors</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label" for="valuationFilter">Valuation Status</label>
+                        <select id="valuationFilter" class="form-control">
+                            <option value="">All Valuations</option>
+                            <option value="Undervalued">Undervalued</option>
+                            <option value="Fairly Valued">Fairly Valued</option>
+                            <option value="Overvalued">Overvalued</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label" for="dividendFilter">Min Dividend Yield (%)</label>
+                        <input type="range" id="dividendFilter" min="0" max="6" step="0.1" value="0" class="slider">
+                        <span id="dividendValue">0.0%</span>
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label" for="periodFilter">Time Period</label>
+                        <select id="periodFilter" class="form-control">
+                            <option value="TTM">TTM</option>
+                            <option value="FY1">FY1</option>
+                            <option value="FY2">FY2</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Overview Panel -->
+        <section class="overview-section">
+            <div class="overview-grid">
+                <div class="overview-card card">
+                    <div class="card__body">
+                        <h3>Classification Summary</h3>
+                        <div class="classification-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Value Stocks</span>
+                                <span class="stat-value" id="valueCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Growth Stocks</span>
+                                <span class="stat-value" id="growthCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="overview-card card">
+                    <div class="card__body">
+                        <h3>Sector Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="sectorChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="overview-card card">
+                    <div class="card__body">
+                        <h3>Market Averages</h3>
+                        <div class="averages-grid">
+                            <div class="avg-item">
+                                <span class="avg-label">Avg P/E (Value)</span>
+                                <span class="avg-value" id="avgPEValue">0</span>
+                            </div>
+                            <div class="avg-item">
+                                <span class="avg-label">Avg P/B (Value)</span>
+                                <span class="avg-value" id="avgPBValue">0</span>
+                            </div>
+                            <div class="avg-item">
+                                <span class="avg-label">Avg EV/EBIT (Value)</span>
+                                <span class="avg-value" id="avgEVValue">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Value Assessment Table -->
+        <section class="value-table-section card">
+            <div class="card__body">
+                <h3>Value Assessment Table</h3>
+                <div class="table-container">
+                    <table id="valueTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-column="company_name">Company</th>
+                                <th class="sortable" data-column="sector">Sector</th>
+                                <th class="sortable" data-column="pe_ratio">P/E</th>
+                                <th class="sortable" data-column="pb_ratio">P/B</th>
+                                <th class="sortable" data-column="ev_ebit">EV/EBIT</th>
+                                <th class="sortable" data-column="dcf_gap">DCF Gap (%)</th>
+                                <th class="sortable" data-column="fcf_yield">FCF Yield</th>
+                                <th class="sortable" data-column="roic">ROIC</th>
+                                <th class="sortable" data-column="fair_value">Fair Value</th>
+                                <th class="sortable" data-column="valuation_tag">Valuation Tag</th>
+                            </tr>
+                        </thead>
+                        <tbody id="valueTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Comparative Chart Module -->
+        <section class="comparison-section card">
+            <div class="card__body">
+                <h3>Interactive Comparative Analysis</h3>
+                <div class="comparison-controls">
+                    <div class="control-group">
+                        <label class="form-label" for="companySelect">Select Companies (2-5)</label>
+                        <select id="companySelect" multiple class="form-control">
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label class="form-label" for="chartTypeSelect">Chart Type</label>
+                        <select id="chartTypeSelect" class="form-control">
+                            <option value="valuation">Valuation (P/E, P/B, EV/EBIT)</option>
+                            <option value="profitability">Profitability (ROIC, ROE, Op Margin)</option>
+                            <option value="safety">Safety (Debt/Equity, Interest Coverage)</option>
+                            <option value="growth">Growth (EPS CAGR, Sales CAGR)</option>
+                            <option value="dividends">Dividends (Yield, Payout Ratio)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Historical Valuation Trends -->
+        <section class="historical-section card">
+            <div class="card__body">
+                <h3>Historical Valuation Trends</h3>
+                <div class="historical-controls">
+                    <label class="form-label" for="historicalCompanySelect">Select Company</label>
+                    <select id="historicalCompanySelect" class="form-control">
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="historicalChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Top 10 Undervalued Leaderboard -->
+        <section class="leaderboard-section card">
+            <div class="card__body">
+                <h3>Top 10 Undervalued Value Stocks</h3>
+                <div class="leaderboard-list" id="leaderboardList">
+                </div>
+            </div>
+        </section>
+
+        <!-- Alert Settings Modal -->
+        <div id="alertModal" class="modal">
+            <div class="modal-content card">
+                <div class="card__body">
+                    <h3>Alert Settings</h3>
+                    <div class="alert-controls">
+                        <div class="alert-group">
+                            <label class="form-label" for="peThreshold">P/E Alert Threshold</label>
+                            <input type="range" id="peThreshold" min="5" max="50" step="0.5" value="15" class="slider">
+                            <span id="peThresholdValue">15.0</span>
+                        </div>
+                        <div class="alert-group">
+                            <label class="form-label" for="dcfThreshold">DCF Gap Alert Threshold (%)</label>
+                            <input type="range" id="dcfThreshold" min="5" max="50" step="1" value="20" class="slider">
+                            <span id="dcfThresholdValue">20%</span>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn--primary" id="saveAlerts">Save Alerts</button>
+                        <button class="btn btn--secondary" id="closeModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Modal -->
+        <div id="exportModal" class="modal">
+            <div class="modal-content card">
+                <div class="card__body">
+                    <h3>Export Data</h3>
+                    <div class="export-options">
+                        <button class="btn btn--primary export-btn" data-format="csv">Export to CSV</button>
+                        <button class="btn btn--primary export-btn" data-format="excel">Export to Excel</button>
+                        <button class="btn btn--primary export-btn" data-format="pdf">Export to PDF</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn--secondary" id="closeExportModal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
